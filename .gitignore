@@ -1,0 +1,49 @@
+# Dataset y datos crudos
+.idea
+data/
+data_raw/
+original/
+standardized_256/
+standardized_384/
+
+# Modelos de entrenamiento (solo modelo_latest.pth se sube)
+modelos/modelo_mejor.pth
+modelos/modelo_final.pth
+modelos/modelo_ft_*.pth
+modelos/modelo_v2_*.pth
+modelos/*_backup.pth
+modelos/modelo_final.onnx
+
+# Entorno virtual
+.venv/
+__pycache__/
+*.pyc
+
+# Scripts de entrenamiento (no necesarios en Pi)
+src/entrenar.py
+src/evaluar.py
+src/finetune.py
+src/comparar_modelos.py
+src/continuar_entrenamiento.py
+src/fine_tuning6clases.py
+src/exportar.py
+src/preparar_dataset.py
+src/agregar_vidrio.py
+src/v1/finetune_agregar_basura.py
+src/v1/fine_tuning6clases.py
+src/v1/finetune.py
+src/v1/entrenar.py
+src/v1/evaluar.py
+src/v1/comparar_modelos.py
+src/v1/continuar_entrenamiento.py
+src/v1/exportar.py
+src/v1/preparar_dataset.py
+src/v1/verificar-entorno.py
+src/agregar_virdrio.py
+src/modelo.py
+# Temporales
+/tmp/
+*.log
+.DS_Store
+archive.zip
+ecobot_colab.zip
