@@ -10,9 +10,13 @@ Modos de uso:
 Output por consola (legible por Arduino via serial):
   BOTE:metal
   CONFIANZA:98.2
+
+Output TCP:
+  Manda una palabra a TCP_IP:TCP_PORT según el bote clasificado.
 """
 
 import sys
+import socket
 import torch
 import torch.nn as nn
 from torchvision import transforms, models
@@ -29,17 +33,39 @@ GRUPOS = {
     "organico":       ["organico", "carton", "papel"],
     "metal":          ["metal"],
     "plastico":       ["plastico"],
-    "vidrio":         ["vidrio"],
-    "basura_general": ["basura_general"],
+    "basura_general": ["basura_general", "vidrio"],  # ← vidrio aquí
 }
 
 EMOJIS = {
     "organico":       "🟤 Orgánico",
     "metal":          "⚙️  Metal",
     "plastico":       "🔵 Plástico",
-    "vidrio":         "🟦 Vidrio",
     "basura_general": "🗑️  Basura general",
 }
+
+TCP_PALABRAS = {
+    "organico":       "ORGANICO",
+    "metal":          "METAL",
+    "plastico":       "PLASTICO",
+    "basura_general": "GENERAL",
+}
+# Palabra que se manda por TCP según el bote
+
+
+# ── Configuración TCP ─────────────────────────────────────────────────────────
+TCP_IP   = "192.168.1.100"  # ← cambia esto a la IP destino
+TCP_PORT = 5000             # ← cambia esto al puerto destino
+
+# ── Envío TCP ─────────────────────────────────────────────────────────────────
+def enviar_tcp(mensaje: str):
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(5)
+            s.connect((TCP_IP, TCP_PORT))
+            s.sendall(mensaje.encode("utf-8"))
+        print(f"[TCP] Enviado → {mensaje}")
+    except Exception as e:
+        print(f"[TCP] Error al enviar: {e}")
 
 # ── Carga modelo ──────────────────────────────────────────────────────────────
 def cargar_modelo():
@@ -95,8 +121,6 @@ def clasificar(modelo, ruta_imagen):
 if __name__ == "__main__":
     modelo = cargar_modelo()
 
-    # Modo prueba: pasa ruta como argumento
-    # Modo producción: captura con cámara
     if len(sys.argv) > 1:
         ruta = sys.argv[1]
     else:
@@ -107,6 +131,9 @@ if __name__ == "__main__":
     # ── Output para Arduino (siempre primero, limpio y parseable) ────────────
     print(f"BOTE:{bote}")
     print(f"CONFIANZA:{confianza*100:.1f}")
+
+    # ── Envío TCP ─────────────────────────────────────────────────────────────
+    enviar_tcp(TCP_PALABRAS[bote])
 
     # ── Output legible para humanos ──────────────────────────────────────────
     print(f"\n{'═'*45}")
