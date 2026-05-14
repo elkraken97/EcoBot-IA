@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<meta name="theme-color" content="#0a1a0e"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>EcoBot IA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #0a1a0e;
+  --surface: #122018;
+  --surface2: #1a2e20;
+  --green: #2dff6e;
+  --green-dim: #1a9940;
+  --amber: #ffb830;
+  --red: #ff4d4d;
+  --text: #e8f5ec;
+  --text-muted: #6b8f72;
+  --border: rgba(45,255,110,0.15);
+  --radius: 16px;
+  --font-display: 'Syne', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Grain overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+.app {
+  position: relative;
+  z-index: 1;
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Header ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 0;
+}
+.logo {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--green);
+  letter-spacing: -0.5px;
+}
+.logo span { color: var(--text-muted); font-weight: 400; }
+.status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── Screens ── */
+.screen {
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  padding: 20px;
+  gap: 20px;
+  animation: fadeIn 0.3s ease;
+}
+.screen.active { display: flex; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ── Screen 1: Capture ── */
+.capture-zone {
+  flex: 1;
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 280px;
+  background: var(--surface);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.capture-zone:active { border-color: var(--green); }
+.capture-zone .icon-recycle {
+  font-size: 56px;
+  animation: float 3s ease-in-out infinite;
+}
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.capture-zone p {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.6;
+}
+.capture-zone .scan-line {
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--green), transparent);
+  top: 0;
+  animation: scan 3s linear infinite;
+  opacity: 0.4;
+}
+@keyframes scan {
+  0% { top: 0; }
+  100% { top: 100%; }
+}
+
+.btn-primary {
+  background: var(--green);
+  color: #0a1a0e;
+  border: none;
+  border-radius: var(--radius);
+  padding: 18px 24px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: transform 0.1s, box-shadow 0.2s;
+  box-shadow: 0 0 20px rgba(45,255,110,0.25);
+}
+.btn-primary:active { transform: scale(0.97); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 24px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  cursor: pointer;
+  width: 100%;
+  transition: border-color 0.2s, color 0.2s;
+}
+.btn-secondary:active { border-color: var(--green); color: var(--text); }
+
+/* ── Screen 2: Loading ── */
+.loading-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+.loader-ring {
+  width: 80px; height: 80px;
+  border: 2px solid var(--border);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--text-muted);
+}
+.loading-dots::after {
+  content: '';
+  animation: dots 1.5s steps(4) infinite;
+}
+@keyframes dots {
+  0%   { content: ''; }
+  25%  { content: '.'; }
+  50%  { content: '..'; }
+  75%  { content: '...'; }
+}
+
+/* ── Screen 3: Result ── */
+.img-preview {
+  width: 100%;
+  max-height: 240px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  display: block;
+}
+
+.result-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.result-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.bote-icon {
+  font-size: 40px;
+  line-height: 1;
+}
+.result-info {}
+.result-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+.result-bote {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 26px;
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: -0.5px;
+}
+
+.confidence-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.confidence-label { font-size: 12px; color: var(--text-muted); }
+.confidence-val { font-size: 12px; color: var(--text); }
+.bar-track {
+  height: 6px;
+  background: var(--surface2);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.bar-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.16,1,0.3,1);
+  box-shadow: 0 0 8px rgba(45,255,110,0.5);
+}
+
+.desglose-title {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+.desglose-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.desglose-nombre {
+  font-size: 11px;
+  width: 105px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+.desglose-nombre.activo { color: var(--green); }
+.desglose-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--surface2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.desglose-bar-fill {
+  height: 100%;
+  background: var(--green-dim);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+.desglose-bar-fill.activo { background: var(--green); }
+.desglose-pct {
+  font-size: 11px;
+  color: var(--text-muted);
+  width: 36px;
+  text-align: right;
+}
+
+/* ── Confirmation buttons ── */
+.confirm-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.confirm-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+.confirm-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.btn-confirm {
+  border: none;
+  border-radius: 12px;
+  padding: 16px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: transform 0.1s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.btn-confirm:active { transform: scale(0.96); }
+.btn-si {
+  background: var(--green);
+  color: #0a1a0e;
+  box-shadow: 0 0 20px rgba(45,255,110,0.2);
+}
+.btn-no {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-confirm small { font-size: 11px; font-weight: 400; font-family: var(--font-mono); opacity: 0.7; }
+
+/* ── Screen 4: Correction ── */
+.correction-card {
+  background: var(--surface);
+  border: 1px solid rgba(255,184,48,0.2);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.correction-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+.correction-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+.clases-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.clase-btn {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.clase-btn .clase-emoji { font-size: 24px; }
+.clase-btn:active, .clase-btn.selected {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: rgba(255,184,48,0.08);
+}
+.btn-enviar {
+  background: var(--amber);
+  color: #1a0e00;
+  border: none;
+  border-radius: var(--radius);
+  padding: 18px 24px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  width: 100%;
+  transition: transform 0.1s;
+  box-shadow: 0 0 20px rgba(255,184,48,0.2);
+}
+.btn-enviar:active { transform: scale(0.97); }
+.btn-enviar:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ── Screen 5: Success ── */
+.success-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+}
+.success-icon {
+  font-size: 80px;
+  animation: pop 0.4s cubic-bezier(0.16,1,0.3,1);
+}
+@keyframes pop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.success-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 28px;
+  color: var(--green);
+}
+.success-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.countdown-bar {
+  width: 100%;
+  max-width: 200px;
+  height: 3px;
+  background: var(--surface2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.countdown-fill {
+  height: 100%;
+  background: var(--green);
+  border-radius: 2px;
+  width: 100%;
+  transition: width linear;
+}
+
+/* ── Error toast ── */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: #2a0a0a;
+  border: 1px solid rgba(255,77,77,0.4);
+  color: var(--red);
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  z-index: 100;
+  transition: transform 0.3s;
+  white-space: nowrap;
+  max-width: 90vw;
+  text-align: center;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ── Footer hint ── */
+.hint {
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  padding: 12px 20px 20px;
+  opacity: 0.6;
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div class="logo">Eco<span>Bot</span> IA</div>
+    <div class="status-dot" title="Conectado"></div>
+  </header>
+
+  <!-- ─────────── Pantalla 1: Capturar ─────────── -->
+  <div class="screen active" id="s-capture">
+    <div class="capture-zone" id="capture-zone" onclick="document.getElementById('file-input').click()">
+      <div class="scan-line"></div>
+      <div class="icon-recycle">♻️</div>
+      <p>Toca para capturar<br/>o subir una imagen</p>
+    </div>
+    <input type="file" id="file-input" accept="image/*" capture="environment" style="display:none"/>
+    <button class="btn-primary" id="btn-capture" onclick="iniciarCaptura()">
+      📷 Capturar con cámara
+    </button>
+    <button class="btn-secondary" onclick="document.getElementById('file-input').click()">
+      Subir imagen desde galería
+    </button>
+  </div>
+
+  <!-- ─────────── Pantalla 2: Analizando ─────────── -->
+  <div class="screen" id="s-loading">
+    <div class="loading-screen">
+      <div class="loader-ring"></div>
+      <div class="loading-text">Analizando<span class="loading-dots"></span></div>
+      <p style="font-size:12px;color:var(--text-muted);text-align:center">EcoBot IA procesando imagen</p>
+    </div>
+  </div>
+
+  <!-- ─────────── Pantalla 3: Resultado ─────────── -->
+  <div class="screen" id="s-result">
+    <img class="img-preview" id="img-preview" src="" alt="Imagen capturada"/>
+
+    <div class="result-card">
+      <div class="result-header">
+        <div class="bote-icon" id="res-emoji">♻️</div>
+        <div class="result-info">
+          <div class="result-label">Clasificado como</div>
+          <div class="result-bote" id="res-bote">—</div>
+        </div>
+      </div>
+
+      <div class="confidence-row">
+        <span class="confidence-label">Confianza</span>
+        <span class="confidence-val" id="res-conf">0%</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" id="conf-bar" style="width:0%"></div></div>
+
+      <div class="desglose-title">Desglose por bote</div>
+      <div id="desglose-container"></div>
+    </div>
+
+    <div class="confirm-section">
+      <p class="confirm-label">¿La clasificación es correcta?</p>
+      <div class="confirm-btns">
+        <button class="btn-confirm btn-si" onclick="confirmar(true)">
+          ✓ Sí
+          <small>soltar basura</small>
+        </button>
+        <button class="btn-confirm btn-no" onclick="confirmar(false)">
+          ✗ No
+          <small>corregir</small>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── Pantalla 4: Corrección ─────────── -->
+  <div class="screen" id="s-correction">
+    <div class="correction-card">
+      <div class="correction-title">⚠️ Corregir clasificación</div>
+      <div class="correction-sub">Selecciona el bote correcto para esta basura. La imagen se guardará para mejorar el modelo.</div>
+
+      <div class="clases-grid" id="clases-grid">
+        <button class="clase-btn" data-bote="organico" onclick="seleccionarClase(this)">
+          <span class="clase-emoji">🟤</span> Orgánico
+        </button>
+        <button class="clase-btn" data-bote="metal" onclick="seleccionarClase(this)">
+          <span class="clase-emoji">⚙️</span> Metal
+        </button>
+        <button class="clase-btn" data-bote="plastico" onclick="seleccionarClase(this)">
+          <span class="clase-emoji">🔵</span> Plástico
+        </button>
+        <button class="clase-btn" data-bote="basura_general" onclick="seleccionarClase(this)">
+          <span class="clase-emoji">🗑️</span> Basura general
+        </button>
+      </div>
+
+      <button class="btn-enviar" id="btn-enviar" onclick="enviarCorreccion()" disabled>
+        Enviar corrección →
+      </button>
+    </div>
+
+    <button class="btn-secondary" onclick="showScreen('s-result')">← Volver</button>
+  </div>
+
+  <!-- ─────────── Pantalla 5: Éxito ─────────── -->
+  <div class="screen" id="s-success">
+    <div class="success-screen">
+      <div class="success-icon">✅</div>
+      <div class="success-title">¡Listo!</div>
+      <p class="success-sub" id="success-msg">Clasificación enviada al ESP32.<br/>El bote se abrirá en un momento.</p>
+      <div class="countdown-bar"><div class="countdown-fill" id="countdown-fill"></div></div>
+      <p style="font-size:11px;color:var(--text-muted)">Volviendo en <span id="countdown-num">5</span>s...</p>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<p class="hint">EcoBot IA · Raspberry Pi · Red local</p>
+
+<script>
+const API = '';  // mismo origen que Flask
+
+let estado = {
+  imgSrc: null,
+  rutaTmp: null,
+  botePredicho: null,
+  claseSeleccionada: null,
+};
+
+// ── Navegación ─────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── Captura desde cámara (llama al servidor Flask) ──
+async function iniciarCaptura() {
+  showScreen('s-loading');
+  try {
+    const res = await fetch(API + '/capturar', { method: 'POST' });
+    if (!res.ok) throw new Error('Error del servidor');
+    const data = await res.json();
+    mostrarResultado(data);
+  } catch(e) {
+    showScreen('s-capture');
+    showToast('❌ No se pudo conectar con la Raspberry');
+  }
+}
+
+// ── Subir imagen desde galería ──────────────────────
+document.getElementById('file-input').addEventListener('change', async function() {
+  if (!this.files.length) return;
+  const file = this.files[0];
+  showScreen('s-loading');
+  try {
+    const b64 = await fileToBase64(file);
+    const res = await fetch(API + '/capturar_imagen', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imagen: b64 })
+    });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    mostrarResultado(data);
+  } catch(e) {
+    showScreen('s-capture');
+    showToast('❌ Error al procesar la imagen');
+  }
+});
+
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// ── Mostrar resultado ───────────────────────────────
+const EMOJIS_MAP = {
+  organico: '🟤',
+  metal: '⚙️',
+  plastico: '🔵',
+  basura_general: '🗑️'
+};
+
+function mostrarResultado(data) {
+  estado.imgSrc = data.imagen;
+  estado.rutaTmp = data.ruta_tmp;
+  estado.botePredicho = data.bote;
+
+  document.getElementById('img-preview').src = data.imagen;
+  document.getElementById('res-emoji').textContent = EMOJIS_MAP[data.bote] || '♻️';
+  document.getElementById('res-bote').textContent = data.bote.replace('_', ' ').toUpperCase();
+  document.getElementById('res-conf').textContent = data.confianza + '%';
+
+  setTimeout(() => {
+    document.getElementById('conf-bar').style.width = data.confianza + '%';
+  }, 100);
+
+  // Desglose
+  const cont = document.getElementById('desglose-container');
+  cont.innerHTML = '';
+  const desglose = data.desglose || {};
+  const sorted = Object.entries(desglose).sort((a,b) => b[1] - a[1]);
+  sorted.forEach(([bote, pct]) => {
+    const activo = bote === data.bote;
+    cont.innerHTML += `
+      <div class="desglose-row">
+        <span class="desglose-nombre ${activo?'activo':''}">${EMOJIS_MAP[bote]||''} ${bote.replace('_',' ')}</span>
+        <div class="desglose-bar"><div class="desglose-bar-fill ${activo?'activo':''}" style="width:${pct}%"></div></div>
+        <span class="desglose-pct">${pct}%</span>
+      </div>`;
+  });
+
+  showScreen('s-result');
+}
+
+// ── Confirmar / Rechazar ────────────────────────────
+async function confirmar(correcto) {
+  if (correcto) {
+    await enviarAlServidor(estado.botePredicho, 'confirmado');
+  } else {
+    estado.claseSeleccionada = null;
+    document.getElementById('btn-enviar').disabled = true;
+    document.querySelectorAll('.clase-btn').forEach(b => b.classList.remove('selected'));
+    showScreen('s-correction');
+  }
+}
+
+// ── Seleccionar clase en corrección ────────────────
+function seleccionarClase(btn) {
+  document.querySelectorAll('.clase-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  estado.claseSeleccionada = btn.dataset.bote;
+  document.getElementById('btn-enviar').disabled = false;
+}
+
+async function enviarCorreccion() {
+  if (!estado.claseSeleccionada) return;
+  await enviarAlServidor(estado.claseSeleccionada, 'corregido');
+}
+
+// ── Llamada al servidor ─────────────────────────────
+async function enviarAlServidor(claseCorrecta, origen) {
+  try {
+    const res = await fetch(API + '/confirmar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clase_correcta: claseCorrecta,
+        origen: origen,
+        ruta_tmp: estado.rutaTmp
+      })
+    });
+    if (!res.ok) throw new Error();
+    mostrarExito(claseCorrecta, origen);
+  } catch(e) {
+    showToast('❌ Error al enviar al servidor');
+  }
+}
+
+// ── Pantalla de éxito + countdown ──────────────────
+function mostrarExito(clase, origen) {
+  const msg = origen === 'confirmado'
+    ? `Clasificado como <b>${clase.replace('_',' ')}</b>.<br/>Señal enviada al ESP32 ✓`
+    : `Corregido a <b>${clase.replace('_',' ')}</b>.<br/>Imagen guardada para entrenamiento ✓`;
+  document.getElementById('success-msg').innerHTML = msg;
+  showScreen('s-success');
+
+  let secs = 5;
+  const fill = document.getElementById('countdown-fill');
+  const num  = document.getElementById('countdown-num');
+  fill.style.transition = 'none';
+  fill.style.width = '100%';
+
+  setTimeout(() => {
+    fill.style.transition = `width ${secs}s linear`;
+    fill.style.width = '0%';
+  }, 50);
+
+  const interval = setInterval(() => {
+    secs--;
+    num.textContent = secs;
+    if (secs <= 0) {
+      clearInterval(interval);
+      // Reset
+      estado = { imgSrc:null, rutaTmp:null, botePredicho:null, claseSeleccionada:null };
+      document.getElementById('file-input').value = '';
+      showScreen('s-capture');
+    }
+  }, 1000);
+}
+</script>
+</body>
+</html>
